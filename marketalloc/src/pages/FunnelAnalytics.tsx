@@ -1,0 +1,16 @@
+import { Funnel, FunnelChart, LabelList, ResponsiveContainer, Tooltip } from "recharts";
+import EmptyState from "../components/common/EmptyState";
+import PageHeader from "../components/common/PageHeader";
+import MetricCard from "../components/common/MetricCard";
+import { useDataset } from "../context/DatasetContext";
+import { formatCurrency, formatNumber, formatPercent } from "../utils/formatters";
+
+export default function FunnelAnalytics() {
+  const { dataset, report } = useDataset();
+  if (!dataset || !report) return <main className="content-wrap"><PageHeader eyebrow="CONVERSION PATH" title="Funnel analytics" description="Measure stage volume and identify where potential customers leave the journey." /><EmptyState /></main>;
+  const stages = report.funnel;
+  return <main className="content-wrap"><PageHeader eyebrow="CONVERSION PATH" title="Funnel analytics" description="Understand progression from campaign exposure through conversion and revenue." />
+    <div className="metric-grid funnel-metrics"><MetricCard label="Largest measured drop-off" value={report.largestLeakage ? `${report.largestLeakage.dropOff.toFixed(1)}%` : "—"} note={report.largestLeakage ? `${report.largestLeakage.from} → ${report.largestLeakage.to}` : "Not enough stage data"} /><MetricCard label="Click-through rate" value={formatPercent(report.summary.ctr)} note="Clicks ÷ impressions" /><MetricCard label="Conversion rate" value={formatPercent(report.summary.conversionRate)} note="Conversions ÷ clicks" /><MetricCard label="Tracked revenue" value={formatCurrency(report.summary.revenue)} note="From converting touchpoints" /></div>
+    <section className="dashboard-panels funnel-panels"><article className="panel chart-panel"><div className="panel-heading"><div><h2>Stage volume</h2><p>Funnel size is based on uploaded campaign and touchpoint data</p></div></div><div className="chart-box funnel-chart"><ResponsiveContainer width="100%" height="100%"><FunnelChart><Tooltip formatter={(value, name) => [name === "Revenue" ? formatCurrency(Number(value)) : formatNumber(Number(value)), name]} /><Funnel data={stages.map((stage) => ({ name: stage.name, value: stage.value > 0 ? stage.value : 0.001, displayValue: stage.kind === "currency" ? formatCurrency(stage.value) : formatNumber(stage.value) }))} dataKey="value" nameKey="name" isAnimationActive={false}><LabelList position="right" fill="#4b5568" stroke="none" dataKey="name" /></Funnel></FunnelChart></ResponsiveContainer></div></article><article className="panel stage-panel"><div className="panel-heading"><div><h2>Stage detail</h2><p>Rate and drop-off from the previous stage</p></div></div><div className="stage-list">{stages.map((stage, index) => <div className="stage-row" key={stage.name}><span className="stage-index">{String(index + 1).padStart(2, "0")}</span><div className="stage-info"><strong>{stage.name}</strong><small>{stage.kind === "currency" ? "Revenue value" : `${formatPercent(stage.rateFromPrevious)} stage conversion`}</small></div><strong>{stage.kind === "currency" ? formatCurrency(stage.value) : formatNumber(stage.value)}</strong><span className={stage.dropOff === null ? "stage-drop neutral" : "stage-drop"}>{formatPercent(stage.dropOff)} drop</span></div>)}</div></article></section>
+  </main>;
+}
